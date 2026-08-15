@@ -1,24 +1,40 @@
 # ReproCapsule
 
-**The bug report that proves itself.** ReproCapsule turns a browser failure into a local, privacy-safe capsule another developer can inspect, integrity-check, and convert into Playwright test source.
+<p align="center">
+  <strong>The bug report that proves itself.</strong><br>
+  Turn a browser failure into local, privacy-safe, inspectable reproduction evidence.
+</p>
 
-> A screenshot tells you a failure happened. A ReproCapsule retains sanitized interaction evidence and makes the reproduction path reviewable.
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-22c55e?style=flat-square" alt="MIT License"></a>
+  <img src="https://img.shields.io/badge/node-24%2B-339933?style=flat-square&logo=nodedotjs&logoColor=white" alt="Node 24 or later">
+  <img src="https://img.shields.io/badge/browser_tests-Playwright-2EAD33?style=flat-square&logo=playwright&logoColor=white" alt="Playwright browser tests">
+  <img src="https://img.shields.io/badge/privacy-local--first-2563eb?style=flat-square" alt="Local-first privacy">
+  <img src="https://img.shields.io/badge/built_with-Kiro-7c3aed?style=flat-square" alt="Built with Kiro">
+</p>
 
-## What ships
+> A screenshot proves a failure happened. A ReproCapsule preserves the sanitized interaction evidence needed to understand and reproduce it.
 
-- **Local browser capture demo:** records form interactions, a genuine local HTTP 500, and a console error.
-- **Capture-time privacy controls:** mask password-like inputs, secret-like query values, and sensitive request headers before preview or export.
-- **Safe local import:** opens an event JSON file only in the browser, rejects unknown fields/bodies/cookies, sanitizes accepted events, and never uploads or persists the file.
-- **Portable format v2 capsule:** `manifest.json`, sanitized `events.json`, self-contained `report.html`, and deterministic `replay.spec.ts`.
-- **Replay transparency:** every selector-backed generated step and report event shows captured selector confidence; it remains a review cue, not a guarantee.
-- **Integrity verification:** SHA-256 hashes detect changed capsule artifacts.
-- **Real browser coverage:** Chromium tests exercise the visible capture/redaction and hostile/safe import workflows against the local server.
+## Why it matters
 
-ReproCapsule has no backend, accounts, telemetry, database, runtime third-party dependencies, request/response-body capture, or cookie capture. Captures stay local.
+“Cannot reproduce” is one of the most expensive phrases in software delivery. Bug reports frequently omit the exact interaction sequence, browser evidence, and failure signals developers need—while raw session recordings can expose passwords, tokens, and sensitive data.
+
+ReproCapsule closes that gap. It captures a local browser failure, sanitizes evidence before it is previewed or exported, packages it into a verifiable capsule, and generates transparent Playwright source for review.
+
+## What it does
+
+- **Captures actionable local evidence** — interaction timeline, real HTTP failures, and console errors.
+- **Redacts before persistence** — password-like input, token/API-key-like URL values, and sensitive request headers become `[REDACTED]` before preview, download, report generation, or replay generation.
+- **Imports safely** — a local JSON inspector reads files only in the browser tab, rejects unknown fields, bodies, and cookies, then renders only sanitized allowlisted evidence.
+- **Exports portable capsules** — each format-v2 capsule includes sanitized events, an integrity manifest, an offline HTML report, and deterministic Playwright source.
+- **Shows replay confidence** — selector-backed steps carry `high`, `medium`, `low`, or `unknown` confidence. Confidence is evidence for human review, never a replay guarantee.
+- **Detects tampering** — SHA-256 verification catches modified artifacts and names captured failure signals.
+
+ReproCapsule is deliberately local-first: no backend, account, telemetry, database, cloud upload, cookie capture, or request/response-body capture.
 
 ## Quick start
 
-**Requirement:** Node.js 24 or later. The browser suite additionally needs a local Chromium install once per machine.
+**Prerequisite:** Node.js 24 or later. Install Chromium once for the real browser suite.
 
 ```powershell
 npm ci
@@ -28,7 +44,7 @@ npm run sample
 npm run verify:sample
 ```
 
-Expected verification output includes:
+Expected verification includes:
 
 ```text
 VALID capsule checkout-failure-demo
@@ -36,32 +52,38 @@ SIGNAL Network failure: POST 500 ...
 SIGNAL Console error: Checkout failed: inventory service is unavailable
 ```
 
-Open `artifacts/checkout-failure.capsule/report.html` to inspect a self-contained report with the sanitized timeline and selector-confidence labels.
-
-## Browser demo
+## Try the demo
 
 ```powershell
 npm run demo
 ```
 
-Open [http://127.0.0.1:4173](http://127.0.0.1:4173), enter any email/password, then select **Reproduce checkout failure**. The target performs a real local `POST /api/checkout` that returns 500 and creates a console error. The rendered evidence is already sanitized; stable demo selectors are shown as `high` confidence.
+Open [http://127.0.0.1:4173](http://127.0.0.1:4173), enter any email and password, and select **Reproduce checkout failure**. The app creates a genuine local `POST /api/checkout` failure with status 500 and a console error.
 
-To inspect an existing event export, choose it under **Inspect another capture locally**. ReproCapsule reads it only in the current browser tab, rejects unknown fields—including bodies and cookies—then renders only the sanitized allowlisted evidence.
-
-Export a downloaded capture into a capsule:
+The visible evidence is already sanitized. Download it, then create and verify a capsule:
 
 ```powershell
-node dist/src/cli.js export .\Downloads\repro-capture.json artifacts\browser-failure.capsule
+node dist/src/cli.js export "$env:USERPROFILE\Downloads\repro-capture.json" artifacts\browser-failure.capsule
 node dist/src/cli.js verify artifacts\browser-failure.capsule
 ```
 
-`verify` validates hashes and recorded failure signals; it does **not** start a browser.
+Open `artifacts/browser-failure.capsule/report.html` to inspect the offline report.
 
-## Generated replay source
+## Capsule contract
 
-Every capsule contains deterministic `replay.spec.ts` source targeting `@playwright/test`. Sensitive input remains a comment that requires a safe fixture. Selector-confidence comments explain why each generated locator requires review.
+```text
+checkout-failure.capsule/
+├── manifest.json       # formatVersion 2, summary, SHA-256 hashes
+├── events.json         # ordered, sanitized, allowlisted events
+├── replay.spec.ts      # deterministic Playwright source + confidence comments
+└── report.html         # standalone evidence timeline + confidence labels
+```
 
-The repository’s own Chromium test suite proves its local **capture/import** workflow. It does not represent generated capsule replay as having run against an arbitrary target application. To run a generated spec in the appropriate target project:
+`verify` checks the artifact hashes, manifest format, event count, and recorded failure signals. It does **not** claim to start a browser.
+
+## Generated replay: what is—and is not—proved
+
+`replay.spec.ts` is actual `@playwright/test` source. It preserves supported interactions in order, omits sensitive values, and emits selector-confidence comments. Use safe fixtures and review each selector before running it against a target application:
 
 ```powershell
 npm install --save-dev --save-exact @playwright/test
@@ -69,63 +91,50 @@ npx playwright install chromium
 npx playwright test .\path\to\replay.spec.ts
 ```
 
-## Capsule format
+This repository runs real Chromium tests for its own **local capture and import workflow**. It does not misrepresent generated replay source as a replay already performed against an arbitrary website.
 
-```text
-checkout-failure.capsule/
-├── manifest.json       # formatVersion 2, summary, SHA-256 hashes
-├── events.json         # ordered sanitized and allowlisted event records
-├── replay.spec.ts      # generated Playwright source plus review confidence
-└── report.html         # offline evidence timeline with confidence labels
-```
+## Privacy boundary
 
-Verification fails when a protected artifact changes or the manifest format is unsupported.
+The same shared validation and sanitization code protects browser import and Node export paths.
 
-## Privacy model
+| Data | Handling |
+|---|---|
+| Password/secret/token/API-key-like input | Redacted before preview/export |
+| Secret-like URL query values | Redacted before preview/export |
+| Authorization/cookie/token/API-key-like headers | Value redacted before preview/export |
+| Selectors embedding sensitive attribute values | Removed |
+| Unknown fields, bodies, response bodies, cookies | Rejected |
+| Uploads, telemetry, persistence | Not implemented |
 
-The same allowlist validation and sanitizer run in the browser import path and Node export path. They:
+Inspect any capsule before sharing it externally.
 
-- redact password-, secret-, token-, and API-key-like input values;
-- redact secret-like query values and sensitive request-header values;
-- remove selector values that embed a sensitive attribute value;
-- reject unknown fields, request bodies, response bodies, and cookies instead of preserving them.
-
-As with any diagnostic artifact, inspect sanitized output before sharing it externally.
-
-## Development and validation
+## Development and quality gates
 
 ```powershell
 npm run build           # strict TypeScript compilation
-npm run test:unit       # six deterministic unit tests
-npm run test:browser    # two real local Chromium workflow tests
-npm test                # both suites
-npm run check           # build plus both suites
-npm run sample          # fresh bundled capsule export
-npm run verify:sample   # integrity and signal verification
+npm run test:unit       # deterministic privacy, format, integrity tests
+npm run test:browser    # real Chromium capture/import workflow tests
+npm test                # unit + browser suites
+npm run check           # full project quality gate
+npm run sample          # fresh deterministic sample capsule
+npm run verify:sample   # integrity and evidence verification
 ```
 
-The browser tests use only `127.0.0.1`; they verify the local 500 capture, visible secret redaction, selector-confidence evidence, rejection of forbidden import fields, and safe imported evidence rendering.
+The current suite contains six Node tests and two Chromium tests. Browser tests contact only `127.0.0.1` and verify visible redaction, local HTTP 500 evidence, selector confidence, forbidden import rejection, and safe imported evidence.
 
-## Meaningful Kiro usage
+## Built with Kiro
 
-The inspectable requirements-to-verification workflow lives in [`.kiro/`](.kiro/):
+ReproCapsule was created with a committed, inspectable specification-driven workflow in [`.kiro/`](.kiro/):
 
-- [`specs/repro-capsule/requirements.md`](.kiro/specs/repro-capsule/requirements.md): privacy, integrity, replay, and browser-workflow acceptance criteria.
-- [`specs/repro-capsule/design.md`](.kiro/specs/repro-capsule/design.md): format v2, trust boundaries, and local architecture.
-- [`specs/repro-capsule/tasks.md`](.kiro/specs/repro-capsule/tasks.md): completed, traceable implementation work.
-- [`steering/`](.kiro/steering/), [`hooks/`](.kiro/hooks/), [`agents/`](.kiro/agents/), and [`skills/`](.kiro/skills/): persistent conventions and automated quality workflow.
+- [`requirements.md`](.kiro/specs/repro-capsule/requirements.md) defines privacy, integrity, browser, and replay acceptance criteria.
+- [`design.md`](.kiro/specs/repro-capsule/design.md) explains format v2, trust boundaries, and test architecture.
+- [`tasks.md`](.kiro/specs/repro-capsule/tasks.md) provides completed requirement-to-implementation traceability.
+- [`steering/`](.kiro/steering/), [`hooks/`](.kiro/hooks/), [`agents/`](.kiro/agents/), and [`skills/`](.kiro/skills/) preserve project context and automated validation practices.
 
-## Three-minute demo script
+## Limits and roadmap
 
-1. **0:00–0:15 — Problem:** screenshots do not provide replayable failure evidence.
-2. **0:15–0:55 — Capture:** enter an email/password and reproduce the local 500; show console-error evidence.
-3. **0:55–1:20 — Privacy:** show `[REDACTED]` values before download, then point out the stable selector’s `high` confidence.
-4. **1:20–1:45 — Local import:** select the same JSON under the import section; explain that files are never uploaded and unknown fields/bodies/cookies are rejected.
-5. **1:45–2:20 — Export and verify:** generate a capsule, run `verify`, and open `report.html` to show evidence and confidence labels.
-6. **2:20–2:35 — Replay boundary:** show `replay.spec.ts`; say it is executable source after target-project setup, not a replay performed in this video.
-7. **2:35–3:00 — Kiro:** trace requirement → design → completed task → browser test/hooks.
-
+This MVP intentionally does not record video, capture request/response bodies, diagnose root cause, upload data, or fix code. Future work could add configurable redaction rules, support more interaction types, compare capsules across runs, and offer an opt-in issue tracker export.
 
 ## License
 
-No license has been selected yet. Add one before public release if you want to grant reuse permissions.
+Released under the [MIT License](LICENSE).
