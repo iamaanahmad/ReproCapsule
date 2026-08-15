@@ -1,6 +1,7 @@
-export const FORMAT_VERSION = 1 as const;
+export const FORMAT_VERSION = 2 as const;
 
 export type InteractionKind = "click" | "input" | "submit" | "navigation";
+export type SelectorConfidence = "high" | "medium" | "low" | "unknown";
 
 export interface EventBase {
   id: string;
@@ -12,6 +13,7 @@ export interface InteractionEvent extends EventBase {
   type: "interaction";
   kind: InteractionKind;
   selector?: string;
+  selectorConfidence?: SelectorConfidence;
   fieldName?: string;
   value?: string;
 }

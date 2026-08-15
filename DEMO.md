@@ -4,38 +4,38 @@
 
 ```powershell
 npm ci
+npx playwright install chromium
 npm run check
 npm run demo
 ```
 
-Open `http://localhost:4173`. Use a terminal window ready to run the two CLI commands below. Keep `artifacts/` open in Explorer for the report reveal.
+Open `http://127.0.0.1:4173`. Keep a terminal ready for the CLI commands and `artifacts/` open in Explorer for the report reveal.
 
 ## Demo sequence
 
-1. State the problem: a screenshot cannot show how a browser failure occurred or whether it is reproducible.
+1. State the problem: a screenshot cannot show how a browser failure occurred, whether secrets were protected, or how reliable a replay selector is.
 2. Enter `ada@example.test` and any password, then click **Reproduce checkout failure**.
-3. Point out the local 500 outcome, then the preview values:
-   - the password is `[REDACTED]`;
-   - the token-like URL value is `[REDACTED]`;
-   - request authorization and API-key values are `[REDACTED]`.
-4. Download the file and run:
+3. Point out the real local 500, console error, and preview values:
+   - password, token-like URL value, authorization, and API key are `[REDACTED]` before download;
+   - `#checkout` has `high` selector confidence because it is a stable demo selector;
+   - confidence is a review signal, not an automatic guarantee.
+4. Download the file, then use **Inspect another capture locally** to reopen it. Explain it never leaves the browser; unknown fields, bodies, and cookies are rejected.
+5. Run:
 
    ```powershell
-   node dist/src/cli.js export .\Downloads\repro-capture.json artifacts\browser-failure.capsule
+   node dist/src/cli.js export C:\Users\iamas\Downloads\repro-capture.json artifacts\browser-failure.capsule
    node dist/src/cli.js verify artifacts\browser-failure.capsule
    ```
 
-5. Open `artifacts/browser-failure.capsule/report.html`. Show the timeline and both evidence signals.
-6. Open `replay.spec.ts`. Say: “This is generated Playwright source. It becomes runnable after the target project provides Playwright, the browser binary, and safe test fixtures. I am not representing it as a replay performed in this demo.”
-7. Open `.kiro/specs/repro-capsule/requirements.md`, `.kiro/steering/privacy.md`, and `.kiro/hooks/` to demonstrate the requirements-to-verification workflow.
+6. Open `artifacts/browser-failure.capsule/report.html`. Show both failure signals and selector-confidence labels.
+7. Open `replay.spec.ts`. Say: “This is generated Playwright source with review confidence. It becomes runnable after the target project provides a browser, test fixtures, and the target URL. I am not representing it as a replay performed in this demo.”
+8. Open `.kiro/specs/repro-capsule/requirements.md`, `.kiro/steering/privacy.md`, and `.kiro/hooks/`. Mention that `npm run test:browser` launches local Chromium and verifies the capture/import privacy workflow.
 
 ## Recovery plan
-
-If the browser download location differs, use the bundled stable input instead:
 
 ```powershell
 npm run sample
 npm run verify:sample
 ```
 
-This produces a known six-event sanitized capture with a 500 network signal and a console-error signal.
+This creates a deterministic sanitized format-v2 sample with a 500 network signal, console-error signal, and selector-confidence evidence.

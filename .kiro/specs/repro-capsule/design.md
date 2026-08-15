@@ -3,34 +3,27 @@
 ## Architecture
 
 ```text
-browser recorder / raw JSON
+browser recorder / local JSON import
         ↓
-  normalize + sanitize (before write)
+ shared allowlist validation + sanitization (before preview/write)
         ↓
  capsule writer ─── events.json + manifest SHA-256
-        ├────────── replay.spec.ts
-        └────────── report.html
+        ├────────── replay.spec.ts with selector-confidence comments
+        └────────── report.html with confidence labels
                     ↓
-       verifier checks schema, hashes, and failure signals
+       verifier checks format, hashes, and failure signals
 ```
 
-All processing is local. The TypeScript CLI uses Node's standard library only at runtime.
+All processing is local. Browser import reads a selected file in memory and has no upload endpoint. Node runtime uses only the standard library; Playwright is a pinned development dependency for the local Chromium workflow tests.
 
-## Capsule format
-A capsule is a directory named `<capture>.capsule` containing:
+## Format v2
+A capsule directory contains a manifest, ordered sanitized events, deterministic replay source, and offline report. Format v2 adds optional interaction `selectorConfidence` (`high`, `medium`, `low`, or `unknown`). Omitted confidence means unknown; it is never inferred as high.
 
-- `manifest.json`: `formatVersion`, export time, event count, summary, and SHA-256 hashes
-- `events.json`: ordered, sanitized event records
-- `replay.spec.ts`: deterministic Playwright test source
-- `report.html`: self-contained visual timeline
+## Privacy boundary
+`validation.ts` allowlists every event field and rejects unknown fields, bodies, response bodies, and cookies. `sanitize.ts` reconstructs each accepted event from allowlisted fields, masks sensitive input/query/header values, and removes selectors with embedded sensitive attribute values. The same compiled modules serve the local browser import UI and the Node exporter.
 
-## Event model
-`interaction` events preserve URL, target selector, action and an optional safe value. `console-error`, `network-failure`, and `warning` events preserve diagnosis evidence. Every event has a stable ID and ISO timestamp.
-
-## Boundary decisions
-- Sanitization occurs before event serialization. Raw values are not passed to report or generator code.
-- `verify` validates JSON structure, compares every manifest hash, and derives its result only from recorded failure evidence. It does not claim to launch a browser.
-- `replay.spec.ts` imports `@playwright/test`; the command to execute it is documented, with the dependency and browser installation left explicit.
+## Replay boundary
+`verify` validates artifact integrity and recorded evidence only. It never claims to launch a browser. Generated `replay.spec.ts` is executable `@playwright/test` source after target-project setup. Separately, this repository’s Chromium suite launches a local browser to prove the capture/import UI and redaction behavior.
 
 ## Test strategy
-Unit tests cover privacy redaction, URL/header masking, serialization integrity, deterministic code generation, and tamper detection. A CLI smoke workflow exports the included raw capture and verifies its resulting capsule.
+Unit tests cover redaction, allowlist rejection, format v2 report/replay generation, determinism, integrity, and tampering. Browser tests use only `127.0.0.1` and prove a live local 500 capture, visible secret absence, selector confidence, hostile import rejection, and safe import rendering. The CLI smoke flow exports and verifies the bundled sample.

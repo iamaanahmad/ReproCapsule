@@ -8,3 +8,6 @@
 - [x] Add privacy, determinism, and tamper tests.
 - [x] Add build/test/smoke commands and judge-facing documentation.
 - [x] Rehearse clean install and smoke-test the three-minute demo flow.
+- [x] Add format-v2 selector-confidence evidence to reports and replay source.
+- [x] Add local allowlisted capture import that rejects bodies, cookies, and unknown fields.
+- [x] Add a real Chromium test of demo capture, secret redaction, and local import behavior.
