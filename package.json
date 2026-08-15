@@ -1,0 +1,20 @@
+{
+  "name": "repro-capsule",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Privacy-first browser failure captures that become verifiable reproduction capsules.",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "npm run build && node --test dist/test/capsule.test.js dist/test/sanitize.test.js",
+    "check": "npm run build && npm test",
+    "sample": "npm run build && node dist/src/cli.js sample artifacts/checkout-failure.capsule",
+    "verify:sample": "npm run build && node dist/src/cli.js verify artifacts/checkout-failure.capsule",
+    "demo": "npm run build && node dist/src/server.js",
+    "start": "node dist/src/cli.js"
+  },
+  "devDependencies": {
+    "@types/node": "24.0.15",
+    "typescript": "5.8.3"
+  }
+}

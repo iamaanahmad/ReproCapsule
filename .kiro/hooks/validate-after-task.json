@@ -1,0 +1,15 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Validate after spec task",
+      "trigger": "PostTaskExec",
+      "description": "Runs the reproducible build and test suite after a feature-spec task is completed.",
+      "action": {
+        "type": "command",
+        "command": "npm run check",
+        "timeout": 120
+      }
+    }
+  ]
+}
